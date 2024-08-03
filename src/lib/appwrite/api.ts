@@ -57,7 +57,6 @@ export async function saveUserToDB(user: {
     console.log(error);
   }
 }
-
 // ============================== SIGN IN
 export async function signInAccount(user: { email: string; password: string }) {
   try {
@@ -227,11 +226,7 @@ export async function searchPosts(searchTerm: string) {
 }
 
 export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
-  const queries: Array<
-    ReturnType<
-      typeof Query.orderDesc | typeof Query.limit | typeof Query.cursorAfter
-    >
-  > = [Query.orderDesc("$updatedAt"), Query.limit(9)];
+  const queries: any[] = [Query.orderDesc("$updatedAt"), Query.limit(9)];
 
   if (pageParam) {
     queries.push(Query.cursorAfter(pageParam.toString()));
