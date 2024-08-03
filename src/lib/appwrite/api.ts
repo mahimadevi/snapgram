@@ -1,6 +1,11 @@
 import { ID, Query } from "appwrite";
-import { appwriteConfig, account, databases, avatars, storage } from "./config";
-import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
+import { appwriteConfig, account, databases, storage, avatars } from "./config";
+import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
+import { ImageGravity } from "appwrite";
+
+// ============================================================
+// AUTH
+// ============================================================
 
 // ============================== SIGN UP
 export async function createUserAccount(user: INewUser) {
@@ -12,7 +17,7 @@ export async function createUserAccount(user: INewUser) {
       user.name
     );
 
-    if (!newAccount) throw new Error("Account creation failed");
+    if (!newAccount) throw Error;
 
     const avatarUrl = avatars.getInitials(user.name);
 
@@ -53,26 +58,6 @@ export async function saveUserToDB(user: {
   }
 }
 
-// // ============================== SIGN IN
-// export async function signInAccount(user: { email: string; password: string }) {
-//   try {
-//     const session = await account.createEmailPasswordSession(
-//       user.email,
-//       user.password
-//     );
-
-//     if (!session) throw new Error("Session creation failed");
-
-//     // Store session information in local storage or cookies
-//     localStorage.setItem("session", JSON.stringify(session));
-
-//     return session;
-//   } catch (error) {
-//     console.log(error);
-//     return null;
-//   }
-// }
-
 // ============================== SIGN IN
 
 export async function signInAccount(user: { email: string; password: string }) {
@@ -106,20 +91,23 @@ export async function signInAccount(user: { email: string; password: string }) {
   }
 }
 
+// ============================== GET ACCOUNT
+export async function getAccount() {
+  try {
+    const currentAccount = await account.get();
+
+    return currentAccount;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 // ============================== GET USER
 export async function getCurrentUser() {
   try {
-    // Retrieve session information from local storage or cookies
-    const session = JSON.parse(localStorage.getItem("session") || "null");
+    const currentAccount = await getAccount();
 
-    if (!session) {
-      throw new Error("No active session found");
-    }
-
-    // Ensure the session is active by making a call to `account.get()`
-    const currentAccount = await account.get();
-
-    if (!currentAccount) throw new Error("Failed to get account");
+    if (!currentAccount) throw Error;
 
     const currentUser = await databases.listDocuments(
       appwriteConfig.databaseId,
@@ -127,9 +115,7 @@ export async function getCurrentUser() {
       [Query.equal("accountId", currentAccount.$id)]
     );
 
-    if (!currentUser || currentUser.total === 0) {
-      throw new Error("Failed to get user");
-    }
+    if (!currentUser) throw Error;
 
     return currentUser.documents[0];
   } catch (error) {
@@ -148,6 +134,10 @@ export async function signOutAccount() {
     console.log(error);
   }
 }
+
+// ============================================================
+// POSTS
+// ============================================================
 
 // ============================== CREATE POST
 export async function createPost(post: INewPost) {
@@ -214,10 +204,10 @@ export function getFilePreview(fileId: string) {
     const fileUrl = storage.getFilePreview(
       appwriteConfig.storageId,
       fileId,
-      2000,
-      2000,
-      "top",
-      100
+      2000, // width
+      2000, // height
+      "top" as ImageGravity, // Use a valid ImageGravity value
+      100 // quality
     );
 
     if (!fileUrl) throw Error;
@@ -227,7 +217,6 @@ export function getFilePreview(fileId: string) {
     console.log(error);
   }
 }
-
 // ============================== DELETE FILE
 export async function deleteFile(fileId: string) {
   try {
@@ -239,13 +228,13 @@ export async function deleteFile(fileId: string) {
   }
 }
 
-// ============================== GET POPULAR POSTS (BY HIGHEST LIKE COUNT)
-export async function getRecentPosts() {
+// ============================== GET POSTS
+export async function searchPosts(searchTerm: string) {
   try {
     const posts = await databases.listDocuments(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
-      [Query.orderDesc("$createdAt"), Query.limit(20)]
+      [Query.search("caption", searchTerm)]
     );
 
     if (!posts) throw Error;
@@ -256,63 +245,31 @@ export async function getRecentPosts() {
   }
 }
 
-// ============================== LIKE / UNLIKE POST
-export async function likePost(postId: string, likesArray: string[]) {
+export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
+  const queries: Array<
+    ReturnType<
+      typeof Query.orderDesc | typeof Query.limit | typeof Query.cursorAfter
+    >
+  > = [Query.orderDesc("$updatedAt"), Query.limit(9)];
+
+  if (pageParam) {
+    queries.push(Query.cursorAfter(pageParam.toString()));
+  }
+
   try {
-    const updatedPost = await databases.updateDocument(
+    const posts = await databases.listDocuments(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
-      postId,
-      {
-        likes: likesArray,
-      }
+      queries
     );
 
-    if (!updatedPost) throw Error;
+    if (!posts) throw Error;
 
-    return updatedPost;
+    return posts;
   } catch (error) {
     console.log(error);
   }
 }
-
-// ============================== SAVE POST
-export async function savePost(userId: string, postId: string) {
-  try {
-    const updatedPost = await databases.createDocument(
-      appwriteConfig.databaseId,
-      appwriteConfig.savesCollectionId,
-      ID.unique(),
-      {
-        user: userId,
-        post: postId,
-      }
-    );
-
-    if (!updatedPost) throw Error;
-
-    return updatedPost;
-  } catch (error) {
-    console.log(error);
-  }
-}
-// ============================== DELETE SAVED POST
-export async function deleteSavedPost(savedRecordId: string) {
-  try {
-    const statusCode = await databases.deleteDocument(
-      appwriteConfig.databaseId,
-      appwriteConfig.savesCollectionId,
-      savedRecordId
-    );
-
-    if (!statusCode) throw Error;
-
-    return { status: "Ok" };
-  } catch (error) {
-    console.log(error);
-  }
-}
-
 // ============================== GET POST BY ID
 export async function getPostById(postId?: string) {
   if (!postId) throw Error;
@@ -417,6 +374,63 @@ export async function deletePost(postId?: string, imageId?: string) {
   }
 }
 
+// ============================== LIKE / UNLIKE POST
+export async function likePost(postId: string, likesArray: string[]) {
+  try {
+    const updatedPost = await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      postId,
+      {
+        likes: likesArray,
+      }
+    );
+
+    if (!updatedPost) throw Error;
+
+    return updatedPost;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================== SAVE POST
+export async function savePost(userId: string, postId: string) {
+  try {
+    const updatedPost = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.savesCollectionId,
+      ID.unique(),
+      {
+        user: userId,
+        post: postId,
+      }
+    );
+
+    if (!updatedPost) throw Error;
+
+    return updatedPost;
+  } catch (error) {
+    console.log(error);
+  }
+}
+// ============================== DELETE SAVED POST
+export async function deleteSavedPost(savedRecordId: string) {
+  try {
+    const statusCode = await databases.deleteDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.savesCollectionId,
+      savedRecordId
+    );
+
+    if (!statusCode) throw Error;
+
+    return { status: "Ok" };
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 // ============================== GET USER'S POST
 export async function getUserPosts(userId?: string) {
   if (!userId) return;
@@ -436,13 +450,13 @@ export async function getUserPosts(userId?: string) {
   }
 }
 
-// ============================== GET POSTS
-export async function searchPosts(searchTerm: string) {
+// ============================== GET POPULAR POSTS (BY HIGHEST LIKE COUNT)
+export async function getRecentPosts() {
   try {
     const posts = await databases.listDocuments(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
-      [Query.search("caption", searchTerm)]
+      [Query.orderDesc("$createdAt"), Query.limit(20)]
     );
 
     if (!posts) throw Error;
@@ -453,31 +467,15 @@ export async function searchPosts(searchTerm: string) {
   }
 }
 
-export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
-  const queries: any[] = [Query.orderDesc("$updatedAt"), Query.limit(9)];
-
-  if (pageParam) {
-    queries.push(Query.cursorAfter(pageParam.toString()));
-  }
-
-  try {
-    const posts = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.postCollectionId,
-      queries
-    );
-
-    if (!posts) throw Error;
-
-    return posts;
-  } catch (error) {
-    console.log(error);
-  }
-}
+// ============================================================
+// USER
+// ============================================================
 
 // ============================== GET USERS
 export async function getUsers(limit?: number) {
-  const queries: any[] = [Query.orderDesc("$createdAt")];
+  const queries: Array<
+    ReturnType<typeof Query.orderDesc> | ReturnType<typeof Query.limit>
+  > = [Query.orderDesc("$createdAt")];
 
   if (limit) {
     queries.push(Query.limit(limit));
@@ -497,7 +495,6 @@ export async function getUsers(limit?: number) {
     console.log(error);
   }
 }
-
 // ============================== GET USER BY ID
 export async function getUserById(userId: string) {
   try {
