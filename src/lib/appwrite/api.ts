@@ -57,37 +57,17 @@ export async function saveUserToDB(user: {
     console.log(error);
   }
 }
-
 // ============================== SIGN IN
-
 export async function signInAccount(user: { email: string; password: string }) {
   try {
-    // First, try to get the current session
-    const existingSessions = await account.listSessions();
-
-    // If there are existing sessions, optionally delete them
-    if (existingSessions.sessions.length > 0) {
-      await Promise.all(
-        existingSessions.sessions.map((session) =>
-          account.deleteSession(session.$id)
-        )
-      );
-    }
-
-    // Attempt to create a new session
     const session = await account.createEmailPasswordSession(
       user.email,
       user.password
     );
 
-    if (!session) throw new Error("Session creation failed");
-
     return session;
   } catch (error) {
-    console.error("Sign-in error:", error);
-    throw new Error(
-      "Sign-in failed. Please check your credentials and try again."
-    );
+    console.log(error);
   }
 }
 
@@ -246,11 +226,7 @@ export async function searchPosts(searchTerm: string) {
 }
 
 export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
-  const queries: Array<
-    ReturnType<
-      typeof Query.orderDesc | typeof Query.limit | typeof Query.cursorAfter
-    >
-  > = [Query.orderDesc("$updatedAt"), Query.limit(9)];
+  const queries: any[] = [Query.orderDesc("$updatedAt"), Query.limit(9)];
 
   if (pageParam) {
     queries.push(Query.cursorAfter(pageParam.toString()));

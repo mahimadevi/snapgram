@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 import { Input } from "@/components/ui";
-import useDebounce from "@/hooks/useDebounce"
+import useDebounce from "@/hooks/useDebounce";
 
-import { useGetPosts, useSearchPosts } from "@/lib/react-query/queriesAndMutations";
+import {
+  useGetPosts,
+  useSearchPosts,
+} from "@/lib/react-query/queriesAndMutations";
 import { Loader } from "lucide-react";
 import GridPostList from "@/components/shared/GridPostList";
+import { Models } from "appwrite";
 
 export type SearchResultProps = {
   isSearchFetching: boolean;
-  searchedPosts: any;
+  searchedPosts: Models.Document[];
 };
 
 const SearchResults = ({
