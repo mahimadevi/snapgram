@@ -1,7 +1,17 @@
 import { Routes, Route } from "react-router-dom";
 import "./globals.css";
 import Signinforms from "./_auth/forms/Signinforms";
-import { AllUsers, CreatePost, EditPost, Explore, Home, PostDetails, Profile, Saved, UpdateProfile } from "./_root/pages";
+import {
+  AllUsers,
+  CreatePost,
+  EditPost,
+  Explore,
+  Home,
+  PostDetails,
+  Profile,
+  Saved,
+  UpdateProfile,
+} from "./_root/pages";
 import Signupforms from "./_auth/forms/Signupforms";
 import AuthLayout from "./_auth/AuthLayout";
 import RootLayout from "./_root/RootLayout";
@@ -15,7 +25,7 @@ const App = () => {
         {/* public routes */}
         <Route element={<AuthLayout />}>
           <Route path="/sign-in" element={<Signinforms />} />
-          <Route path="/sign-up" element={<Signupforms />} />{" "}
+          <Route path="/sign-up" element={<Signupforms />} />
         </Route>
 
         {/* private routes */}
