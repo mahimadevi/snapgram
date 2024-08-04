@@ -1,7 +1,7 @@
 import { ID, Query } from "appwrite";
 import { appwriteConfig, account, databases, storage, avatars } from "./config";
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
-import { ImageGravity } from "appwrite";
+import { ImageGravity } from "appwrite"; // Ensure this import is correct
 
 // ============================================================
 // AUTH
@@ -197,6 +197,7 @@ export function getFilePreview(fileId: string) {
     console.log(error);
   }
 }
+
 // ============================== DELETE FILE
 export async function deleteFile(fileId: string) {
   try {
@@ -207,7 +208,6 @@ export async function deleteFile(fileId: string) {
     console.log(error);
   }
 }
-
 // ============================== GET POSTS
 export async function searchPosts(searchTerm: string) {
   try {
@@ -225,11 +225,15 @@ export async function searchPosts(searchTerm: string) {
   }
 }
 
-export async function getInfinitePosts({ pageParam }: { pageParam?: string }) {
-  const queries: any[] = [Query.orderDesc("$updatedAt"), Query.limit(9)];
+export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
+  const queries: Array<
+    ReturnType<
+      typeof Query.orderDesc | typeof Query.limit | typeof Query.cursorAfter
+    >
+  > = [Query.orderDesc("$updatedAt"), Query.limit(9)];
 
   if (pageParam) {
-    queries.push(Query.cursorAfter(pageParam));
+    queries.push(Query.cursorAfter(pageParam.toString()));
   }
 
   try {
@@ -246,7 +250,6 @@ export async function getInfinitePosts({ pageParam }: { pageParam?: string }) {
     console.log(error);
   }
 }
-
 // ============================== GET POST BY ID
 export async function getPostById(postId?: string) {
   if (!postId) throw Error;

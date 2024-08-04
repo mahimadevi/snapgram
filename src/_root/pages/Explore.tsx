@@ -3,18 +3,15 @@ import { useInView } from "react-intersection-observer";
 
 import { Input } from "@/components/ui";
 import useDebounce from "@/hooks/useDebounce";
-
+import { GridPostList, Loader } from "@/components/shared";
 import {
   useGetPosts,
   useSearchPosts,
 } from "@/lib/react-query/queriesAndMutations";
-import { Loader } from "lucide-react";
-import GridPostList from "@/components/shared/GridPostList";
-import { Models } from "appwrite";
 
 export type SearchResultProps = {
   isSearchFetching: boolean;
-  searchedPosts: Models.Document[];
+  searchedPosts: any;
 };
 
 const SearchResults = ({
@@ -106,11 +103,9 @@ const Explore = () => {
         ) : shouldShowPosts ? (
           <p className="text-light-4 mt-10 text-center w-full">End of posts</p>
         ) : (
-          posts.pages.map((item, index) =>
-            item ? (
-              <GridPostList key={`page-${index}`} posts={item.documents} />
-            ) : null
-          )
+          posts.pages.map((item, index) => (
+            <GridPostList key={`page-${index}`} posts={item.documents} />
+          ))
         )}
       </div>
 
